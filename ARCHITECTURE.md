@@ -21,37 +21,17 @@ SQL плюс `cascade="all, delete-orphan"` в ORM-relationship), за
 Ключевые инварианты на уровне БД:
 
 - `UniqueConstraint(owner_id, name)` на `experiments` — нельзя завести
-  у одного пользователя два эксперимента с одним именем.
+у одного пользователя два эксперимента с одним именем.
 - `UniqueConstraint(run_id, key)` на `params` — параметр логируется
-  один раз за ран.
+один раз за ран.
 - `UniqueConstraint(run_id, key, step)` на `metrics` — для каждой
-  точки time-series ровно одно значение (используется для upsert).
-- `UniqueConstraint(registered_model_id, version)` на `model_versions`
-  — версии нумеруются последовательно внутри модели.
-
-## Чем отличается от fastapi-taskman из лекций
-
-Референс использует `sqlmodel`, который смешивает Pydantic-схемы и
-ORM-таблицы в одном классе. На 7 таблицах и сервисном слое это
-становится неудобным. В этом проекте:
-
-1. **SQLAlchemy 2.0 ORM с `Mapped[...]`** — таблицы (`app/models/`) и
-   Pydantic-схемы (`app/schemas/`) изолированы. Это даёт чистые типы
-   на ответах API и упрощает миграции Alembic.
-2. **Сервисный слой `app/services/`** — вся бизнес-логика лежит здесь;
-   роутеры тонкие и легко покрываются интеграционными тестами, а
-   сервисы — юнитами без HTTP (см. `_pareto_front`).
-3. **Метрики как time-series** с upsert по `(run_id, key, step)` через
-   `sqlalchemy.dialects.sqlite.insert(...).on_conflict_do_update`.
-4. **Инвариант Production** проверяется атомарно в одной транзакции:
-   при `set_stage(..., PRODUCTION)` сервис в той же сессии переводит
-   текущую Production-версию в Archived. Это правильнее, чем
-   контролировать только частичным уникальным индексом — даёт
-   осмысленное переходное состояние.
+точки time-series ровно одно значение (используется для upsert).
+- `UniqueConstraint(registered_model_id, version)` на `model_versions`  
+— версии нумеруются последовательно внутри модели
 
 ## Бизнес-задача: аналитика
 
-Это часть, где «не CRUD». Три алгоритма:
+## Три алгоритма:
 
 ### Leaderboard
 
@@ -81,10 +61,6 @@ stmt = (
 )
 ```
 
-Это **тот самый фрагмент, которым можно гордиться в видео**: один
-запрос, без выгрузки всей истории в Python, корректно работает на
-произвольном количестве точек.
-
 ### Compare runs
 
 `POST /runs/compare` с `{"run_ids": [...]}` возвращает таблицу,
@@ -109,25 +85,23 @@ stmt = (
 - bcrypt (`passlib`) для паролей.
 - JWT (`PyJWT`) с `sub = email`, `exp`, `iat`.
 - Зависимости: `get_current_user` (любой залогиненный),
-  `require_admin` (только `UserRole.ADMIN`).
+`require_admin` (только `UserRole.ADMIN`).
 - Admin переводит версии моделей в `Production` и видит/удаляет чужие
-  эксперименты. Обычный пользователь — только свои.
+эксперименты. Обычный пользователь — только свои.
 
 ## SQLite-специфика
 
 - `PRAGMA foreign_keys=ON` включается на каждое подключение через
-  SQLAlchemy event listener (`app/core/db.py`) — без этого SQLite
-  игнорирует FK на уровне SQL.
+SQLAlchemy event listener (`app/core/db.py`) — без этого SQLite
+игнорирует FK на уровне SQL.
 - `render_as_batch=True` для Alembic при `sqlite://` URL —
-  стандартное требование для ALTER TABLE миграций под SQLite.
-- Upsert метрик через `sqlalchemy.dialects.sqlite.insert(...)
-  .on_conflict_do_update(...)` — диалектозависимо, но локализовано
-  в одном сервисе.
+стандартное требование для ALTER TABLE миграций под SQLite.
+- Upsert метрик через `sqlalchemy.dialects.sqlite.insert(...) .on_conflict_do_update(...)` — диалектозависимо, но локализовано в одном сервисе.
 
 ## Тесты
 
 - Изолированный `test.db` в `tmp_path` на каждый тест через
-  переопределение FastAPI-зависимости `get_session` (`tests/conftest.py`).
+переопределение FastAPI-зависимости `get_session` (`tests/conftest.py`).
 - 62 теста покрывают:
   - модели и unique-ограничения (8),
   - auth happy/edge (10),
@@ -138,3 +112,4 @@ stmt = (
   - registry + Production-инвариант + admin-only (8),
   - smoke /health и OpenAPI (2).
 - Покрытие: **95%** line coverage.
+
