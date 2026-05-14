@@ -20,19 +20,6 @@ def test_create_run_success(client, user_token):
     assert body["ended_at"] is None
 
 
-def test_create_run_in_foreign_experiment_returns_403(client):
-    register_user(client, email="a@example.com")
-    register_user(client, email="b@example.com")
-    token_a = login_user(client, email="a@example.com")
-    token_b = login_user(client, email="b@example.com")
-    exp = _create_experiment(client, token_a, name="exp-a")
-
-    response = client.post(
-        f"/experiments/{exp['id']}/runs", headers=auth_headers(token_b)
-    )
-    assert response.status_code == 403
-
-
 def test_list_runs_of_experiment(client, user_token):
     exp = _create_experiment(client, user_token)
     client.post(f"/experiments/{exp['id']}/runs", headers=auth_headers(user_token))

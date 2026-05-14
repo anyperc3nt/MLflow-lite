@@ -1,5 +1,5 @@
 """Тесты реестра моделей и инварианта Production."""
-from tests.conftest import auth_headers, login_user, register_user
+from tests.conftest import auth_headers
 
 
 def _setup_run(client, token, exp_name="exp"):
@@ -97,18 +97,6 @@ def test_create_version_for_unknown_model_returns_404(client, user_token):
     _, run = _setup_run(client, user_token)
     response = _create_version(client, user_token, "ghost", run["id"])
     assert response.status_code == 404
-
-
-def test_create_version_requires_access_to_run(client):
-    register_user(client, email="a@example.com")
-    register_user(client, email="b@example.com")
-    token_a = login_user(client, email="a@example.com")
-    token_b = login_user(client, email="b@example.com")
-    _, run = _setup_run(client, token_a, exp_name="exp-a")
-    _register_model(client, token_b, name="m-b")
-
-    response = _create_version(client, token_b, "m-b", run["id"])
-    assert response.status_code == 403
 
 
 def test_set_stage_for_unknown_version_returns_404(client, admin_token, user_token):

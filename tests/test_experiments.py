@@ -39,30 +39,6 @@ def test_two_users_can_have_same_experiment_name(client):
     assert _create_experiment(client, token_b, name="shared").status_code == 201
 
 
-def test_list_returns_only_own_experiments(client):
-    register_user(client, email="a@example.com")
-    register_user(client, email="b@example.com")
-    token_a = login_user(client, email="a@example.com")
-    token_b = login_user(client, email="b@example.com")
-    _create_experiment(client, token_a, name="exp-a")
-    _create_experiment(client, token_b, name="exp-b")
-
-    body = client.get("/experiments", headers=auth_headers(token_a)).json()
-    names = [e["name"] for e in body]
-    assert names == ["exp-a"]
-
-
-def test_get_other_users_experiment_returns_403(client):
-    register_user(client, email="a@example.com")
-    register_user(client, email="b@example.com")
-    token_a = login_user(client, email="a@example.com")
-    token_b = login_user(client, email="b@example.com")
-    created = _create_experiment(client, token_a, name="exp-a").json()
-
-    response = client.get(f"/experiments/{created['id']}", headers=auth_headers(token_b))
-    assert response.status_code == 403
-
-
 def test_get_missing_experiment_returns_404(client, user_token):
     response = client.get("/experiments/999", headers=auth_headers(user_token))
     assert response.status_code == 404

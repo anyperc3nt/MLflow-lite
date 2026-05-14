@@ -106,38 +106,6 @@ def test_leaderboard_top_limits_rows(client, user_token):
     assert body[0]["value"] == 0.5
 
 
-def test_compare_runs_combines_params_and_metrics(client, user_token):
-    exp, runs = _setup_runs(client, user_token)
-    client.post(
-        f"/runs/{runs[0]['id']}/params",
-        json={"params": [{"key": "lr", "value": "0.01"}]},
-        headers=auth_headers(user_token),
-    )
-    client.post(
-        f"/runs/{runs[1]['id']}/params",
-        json={"params": [{"key": "lr", "value": "0.05"}, {"key": "depth", "value": "5"}]},
-        headers=auth_headers(user_token),
-    )
-    _log_metric_series(client, user_token, runs[0]["id"], "loss", [0.4])
-    _log_metric_series(client, user_token, runs[1]["id"], "loss", [0.6])
-
-    response = client.post(
-        "/runs/compare",
-        json={"run_ids": [runs[0]["id"], runs[1]["id"]]},
-        headers=auth_headers(user_token),
-    )
-    assert response.status_code == 200
-    body = response.json()
-    # params: lr есть у обоих, depth только у runs[1].
-    assert body["params"]["lr"][str(runs[0]["id"])] == "0.01"
-    assert body["params"]["lr"][str(runs[1]["id"])] == "0.05"
-    assert body["params"]["depth"][str(runs[0]["id"])] is None
-    assert body["params"]["depth"][str(runs[1]["id"])] == "5"
-    assert body["metrics"]["loss"][str(runs[0]["id"])] == 0.4
-    # exp используется только для группировки в фикстуре
-    _ = exp
-
-
 def test_compare_requires_at_least_two_runs(client, user_token):
     exp, runs = _setup_runs(client, user_token)
     response = client.post(

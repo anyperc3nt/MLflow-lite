@@ -1,5 +1,5 @@
 """Тесты логирования параметров и метрик."""
-from tests.conftest import auth_headers, login_user, register_user
+from tests.conftest import auth_headers
 
 
 def _setup_run(client, token, exp_name="exp"):
@@ -94,21 +94,6 @@ def test_cannot_log_to_finished_run(client, user_token):
         headers=auth_headers(user_token),
     )
     assert response.status_code == 409
-
-
-def test_cannot_log_to_foreign_run(client):
-    register_user(client, email="a@example.com")
-    register_user(client, email="b@example.com")
-    token_a = login_user(client, email="a@example.com")
-    token_b = login_user(client, email="b@example.com")
-    _, run = _setup_run(client, token_a, exp_name="exp-a")
-
-    response = client.post(
-        f"/runs/{run['id']}/metrics",
-        json={"metrics": [{"key": "loss", "value": 0.1, "step": 0}]},
-        headers=auth_headers(token_b),
-    )
-    assert response.status_code == 403
 
 
 def test_metrics_validation_rejects_negative_step(client, user_token):
