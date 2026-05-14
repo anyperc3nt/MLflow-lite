@@ -31,11 +31,15 @@ The script will:
    `train_loss` / `val_loss` per epoch, plus a single
    `train_time_ms` data point.
 5. Mark each run as `FINISHED`.
+6. Call `GET /experiments/{id}/leaderboard` (top 1, `val_loss`, `min`), then
+   register model `linreg-linear` and attach the best run as **version 1**
+   in the model registry (`POST /models`, `POST /models/.../versions`).
 
 After the run, open <http://127.0.0.1:8000/docs> and try:
 
 - `GET /experiments/{id}/leaderboard?metric=val_loss&top=5&mode=min`
 - `GET /experiments/{id}/pareto?x=val_loss&y=train_time_ms&x_mode=min&y_mode=min`
+- `GET /models/linreg-linear` — registered model and its version(s)
 - `POST /runs/compare` with a couple of run ids to see params/metric diffs.
 
 ## Files

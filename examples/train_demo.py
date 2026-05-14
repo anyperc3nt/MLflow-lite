@@ -11,6 +11,7 @@ train_loss / val_loss / train_time_ms по эпохам.
 После прогона можно открыть Swagger и попробовать:
     GET  /experiments/{id}/leaderboard?metric=val_loss&top=5&mode=min
     GET  /experiments/{id}/pareto?x=val_loss&y=train_time_ms&x_mode=min&y_mode=min
+    GET  /models/{name}  — зарегистрированная из лучшего рана версия модели
 """
 from __future__ import annotations
 
@@ -26,6 +27,7 @@ RNG = np.random.default_rng(seed=42)
 DEMO_USER = "demo@example.com"
 DEMO_PASSWORD = "password123"
 DEMO_EXPERIMENT = "linreg-sweep"
+DEMO_MODEL_NAME = "linreg-linear"
 
 
 def make_dataset(
@@ -101,6 +103,22 @@ def run_sweep() -> None:
                 f"final val_loss={val_loss:.4f} time={elapsed_ms:.1f}ms"
             )
 
+        # Реестр моделей: лучший ран по val_loss (тот же критерий, что leaderboard)
+        board = mlf.leaderboard(experiment_id, "val_loss", top=1, mode="min")
+        if not board:
+            print("\nWarning: leaderboard empty, skipping model registry.")
+        else:
+            best_run_id = board[0]["run_id"]
+            mlf.register_model(
+                DEMO_MODEL_NAME,
+                description="Linear regression (GD) from train_demo sweep",
+            )
+            version_info = mlf.register_model_version(DEMO_MODEL_NAME, best_run_id)
+            print(
+                f"\nRegistry: model '{DEMO_MODEL_NAME}' version "
+                f"{version_info['version']} -> run_id={best_run_id}"
+            )
+
     print("\nDone. Try in Swagger:")
     print(
         f"  GET /experiments/{experiment_id}/leaderboard"
@@ -110,6 +128,7 @@ def run_sweep() -> None:
         f"  GET /experiments/{experiment_id}/pareto"
         "?x=val_loss&y=train_time_ms&x_mode=min&y_mode=min"
     )
+    print(f"  GET /models/{DEMO_MODEL_NAME}")
 
 
 if __name__ == "__main__":

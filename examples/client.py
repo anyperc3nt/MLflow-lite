@@ -104,3 +104,39 @@ class MLflowLiteClient:
             headers=self._auth_headers,
         )
         response.raise_for_status()
+
+    def leaderboard(
+        self,
+        experiment_id: int,
+        metric: str,
+        top: int = 10,
+        mode: str = "min",
+    ) -> List[dict]:
+        """Возвращает JSON leaderboard (список объектов с run_id, value, step, ...)."""
+        response = self._client.get(
+            f"/experiments/{experiment_id}/leaderboard",
+            params={"metric": metric, "top": top, "mode": mode},
+            headers=self._auth_headers,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def register_model(self, name: str, description: str = "") -> None:
+        """Регистрирует имя модели в реестре. 409 — модель уже есть, игнорируем."""
+        response = self._client.post(
+            "/models",
+            json={"name": name, "description": description or None},
+            headers=self._auth_headers,
+        )
+        if response.status_code not in (201, 409):
+            response.raise_for_status()
+
+    def register_model_version(self, model_name: str, run_id: int) -> dict:
+        """Регистрирует версию модели, привязанную к рану."""
+        response = self._client.post(
+            f"/models/{model_name}/versions",
+            json={"run_id": run_id},
+            headers=self._auth_headers,
+        )
+        response.raise_for_status()
+        return response.json()
