@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Импорт пакета моделей нужен, чтобы Base.metadata знал обо всех таблицах при create_all.
 import app.models as _models  # noqa: F401  pylint: disable=unused-import
@@ -24,9 +25,16 @@ def db_path(tmp_path: Path) -> Path:
 
 @pytest.fixture()
 def engine(db_path: Path):
-    """Свежий engine на файл, схема создаётся через Base.metadata.create_all."""
+    """Свежий engine на файл со StaticPool, чтобы все сессии в тесте
+    работали через одно подключение и видели свежие коммиты.
+    """
     url = f"sqlite:///{db_path}"
-    eng = create_engine(url, connect_args={"check_same_thread": False}, future=True)
+    eng = create_engine(
+        url,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        future=True,
+    )
     Base.metadata.create_all(eng)
     yield eng
     eng.dispose()
@@ -107,14 +115,23 @@ def user_token(client: TestClient) -> str:
 
 @pytest.fixture()
 def admin_token(client: TestClient, session_factory) -> str:
-    """Фикстура: пользователь с ролью ADMIN + готовый JWT."""
-    from app.models import User, UserRole  # локальный импорт, чтобы не плодить циклы
+    """Фикстура: пользователь с ролью ADMIN + готовый JWT.
 
-    register_user(client, email="admin@example.com", password="password123", name="Admin")
+    Создаётся напрямую через ORM (минуя /auth/signup), чтобы атомарно
+    выставить роль ADMIN и не зависеть от двух раздельных HTTP-вызовов.
+    """
+    from app.auth.security import get_password_hash
+    from app.models import User, UserRole
+
     session = session_factory()
     try:
-        user = session.query(User).filter(User.email == "admin@example.com").one()
-        user.role = UserRole.ADMIN
+        user = User(
+            email="admin@example.com",
+            hashed_password=get_password_hash("password123"),
+            name="Admin",
+            role=UserRole.ADMIN,
+        )
+        session.add(user)
         session.commit()
     finally:
         session.close()
