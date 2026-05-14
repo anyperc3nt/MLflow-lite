@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import ModelStage, ModelVersion, RegisteredModel, Run, User
+from app.models import ModelStage, ModelVersion, RegisteredModel, User
 from app.services.runs import get_run_for_user
 
 

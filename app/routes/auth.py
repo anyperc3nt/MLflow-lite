@@ -51,7 +51,9 @@ def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_session)],
 ) -> Token:
-    user = session.execute(select(User).where(User.email == form_data.username)).scalar_one_or_none()
+    user = session.execute(
+        select(User).where(User.email == form_data.username)
+    ).scalar_one_or_none()
     if user is None or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
