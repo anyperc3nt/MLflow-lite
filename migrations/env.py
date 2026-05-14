@@ -12,7 +12,7 @@ from alembic import context
 # Импорт моделей нужен, чтобы Base.metadata содержал все таблицы для autogenerate.
 from app.core.config import settings
 from app.core.db import Base
-from app.models import models as _models  # noqa: F401  pylint: disable=unused-import
+import app.models  # noqa: F401  pylint: disable=unused-import
 
 config = context.config
 

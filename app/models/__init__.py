@@ -8,11 +8,15 @@ from app.models.models import (
     User,
     UserRole,
 )
+from app.models.registry import ModelStage, ModelVersion, RegisteredModel
 
 __all__ = [
     "Experiment",
     "Metric",
+    "ModelStage",
+    "ModelVersion",
     "Param",
+    "RegisteredModel",
     "Run",
     "RunStatus",
     "User",

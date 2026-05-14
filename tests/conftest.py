@@ -9,11 +9,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+# Импорт пакета моделей нужен, чтобы Base.metadata знал обо всех таблицах при create_all.
+import app.models as _models  # noqa: F401  pylint: disable=unused-import
+
 from app.core.db import Base, get_session
 from app.main import app
-
-# Импорт моделей нужен, чтобы Base.metadata знал обо всех таблицах при create_all.
-from app.models import models as _models  # noqa: F401  pylint: disable=unused-import
 
 
 @pytest.fixture()
