@@ -1,12 +1,23 @@
 """Точка входа FastAPI-приложения MLflow-lite."""
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from app.auth.bootstrap import ensure_admin_user
 from app.routes import analytics as analytics_routes
 from app.routes import auth as auth_routes
 from app.routes import experiments as experiments_routes
 from app.routes import logging as logging_routes
 from app.routes import registry as registry_routes
 from app.routes import runs as runs_routes
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Startup/shutdown-хуки приложения."""
+    ensure_admin_user()
+    yield
+
 
 app = FastAPI(
     title="MLflow-lite",
@@ -19,7 +30,7 @@ app = FastAPI(
         "name": "Цифровая кафедра МФТИ",
         "url": "https://mipt.ru",
     },
-    license_info={"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
+    lifespan=lifespan,
 )
 
 
