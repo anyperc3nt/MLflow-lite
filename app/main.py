@@ -1,6 +1,7 @@
 """Точка входа FastAPI-приложения MLflow-lite."""
 from fastapi import FastAPI
 
+from app.routes import analytics as analytics_routes
 from app.routes import auth as auth_routes
 from app.routes import experiments as experiments_routes
 from app.routes import logging as logging_routes
@@ -25,6 +26,7 @@ app.include_router(auth_routes.router)
 app.include_router(experiments_routes.router)
 app.include_router(runs_routes.router)
 app.include_router(logging_routes.router)
+app.include_router(analytics_routes.router)
 
 
 @app.get("/health", tags=["Служебное"], summary="Проверка работоспособности")
