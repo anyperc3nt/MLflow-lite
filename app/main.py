@@ -3,6 +3,7 @@ from fastapi import FastAPI
 
 from app.routes import auth as auth_routes
 from app.routes import experiments as experiments_routes
+from app.routes import logging as logging_routes
 from app.routes import runs as runs_routes
 
 app = FastAPI(
@@ -23,6 +24,7 @@ app = FastAPI(
 app.include_router(auth_routes.router)
 app.include_router(experiments_routes.router)
 app.include_router(runs_routes.router)
+app.include_router(logging_routes.router)
 
 
 @app.get("/health", tags=["Служебное"], summary="Проверка работоспособности")
