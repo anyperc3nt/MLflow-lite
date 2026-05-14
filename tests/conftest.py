@@ -64,3 +64,58 @@ def client(session_factory) -> Iterator[TestClient]:
             yield test_client
     finally:
         app.dependency_overrides.clear()
+
+
+def register_user(
+    client: TestClient,
+    email: str = "user@example.com",
+    password: str = "password123",
+    name: str = "Test User",
+) -> dict:
+    """Хелпер: создать пользователя через POST /auth/signup."""
+    response = client.post(
+        "/auth/signup",
+        json={"email": email, "password": password, "name": name},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def login_user(
+    client: TestClient,
+    email: str = "user@example.com",
+    password: str = "password123",
+) -> str:
+    """Хелпер: залогиниться через POST /auth/login, вернуть JWT."""
+    response = client.post(
+        "/auth/login", data={"username": email, "password": password}
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["access_token"]
+
+
+def auth_headers(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+def user_token(client: TestClient) -> str:
+    """Фикстура: зарегистрированный пользователь + готовый JWT-токен."""
+    register_user(client)
+    return login_user(client)
+
+
+@pytest.fixture()
+def admin_token(client: TestClient, session_factory) -> str:
+    """Фикстура: пользователь с ролью ADMIN + готовый JWT."""
+    from app.models import User, UserRole  # локальный импорт, чтобы не плодить циклы
+
+    register_user(client, email="admin@example.com", password="password123", name="Admin")
+    session = session_factory()
+    try:
+        user = session.query(User).filter(User.email == "admin@example.com").one()
+        user.role = UserRole.ADMIN
+        session.commit()
+    finally:
+        session.close()
+    return login_user(client, email="admin@example.com")
